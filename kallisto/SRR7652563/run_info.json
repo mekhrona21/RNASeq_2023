@@ -1,0 +1,13 @@
+{
+	"n_targets": 34658,
+	"n_bootstraps": 0,
+	"n_processed": 26393989,
+	"n_pseudoaligned": 23093263,
+	"n_unique": 22458012,
+	"p_pseudoaligned": 87.5,
+	"p_unique": 85.1,
+	"kallisto_version": "0.46.1",
+	"index_version": 10,
+	"start_time": "Thu Nov  2 21:03:50 2023",
+	"call": "kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o SRR7652563 SRR7652563_1_trimmed_paired.fastq.gz SRR7652563_2_trimmed_paired.fastq.gz"
+}
