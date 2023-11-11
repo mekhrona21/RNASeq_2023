@@ -247,3 +247,140 @@ ggplot(myGSEA.df[1:20,], aes(x=phenotype, y=ID)) +
   geom_point(aes(size=setSize, color = NES, alpha=-log10(p.adjust))) +
   scale_color_gradient(low="blue", high="red") +
   theme_bw()
+
+
+
+------------------------------------------------------------------------
+# Step 4 Gene Ontology (GO) enrichment using gProfiler2 and Heatmapping
+
+# installing packages and loading all required libraries 
+
+BiocManager::install("GSEABase")
+BiocManager::install("GSVA")
+BiocManager::install("clusterProfiler")
+BiocManager::install("msigdbr")
+BiocManager::install("enrichplot")
+
+library(tidyverse)
+library(limma)
+library(gplots) #for heatmaps
+library(DT) #interactive and searchable tables of our GSEA results
+library(GSEABase) #functions and methods for Gene Set Enrichment Analysis
+library(Biobase) #base functions for bioconductor; required by GSEABase
+library(GSVA) #Gene Set Variation Analysis, a non-parametric and unsupervised method for estimating variation of gene set enrichment across samples.
+library(gprofiler2) #tools for accessing the GO enrichment results using g:Profiler web resources
+library(clusterProfiler) # provides a suite of tools for functional enrichment analysis
+library(msigdbr) # access to msigdb collections directly within R
+library(enrichplot) # great for making the standard GSEA enrichment plots
+myTop100Hits <- topTable(ebFit, adjust ="BH", coef=1, number=100, sort.by="logFC") # pick the top 100 genes by logFC value for carrying out GO enrichment analysis
+gost.res <- gost(rownames(myTop100Hits), organism = "slycopersicum", correction_method = "fdr") # run GO enrichment analysis
+gostplot(gost.res, interactive = T, capped = F) # interactive manhattan plot of enriched GO terms
+
+
+#save gost plot and table
+publish_gostplot(
+  gostplot(gost.res, interactive = F, capped = F), # static gostplot
+  highlight_terms = c("GO:0005975", "GO:0048046", "GO:0030145", "GO:0003824", "GO:0045735"), # highlight top 7 lowest p-values
+  filename = "gostplot100.png",
+  width = NA,
+  height = NA)
+
+publish_gosttable(
+  gost.res$result[order(gost.res$result$p_value, decreasing = F),],
+  highlight_terms = NULL,
+  use_colors = TRUE,
+  show_columns = c("source", "term_name", "term_size", "intersection_size"),
+  filename = "gosttable100.pdf",
+  ggplot=TRUE)
+
+# create tissue modules based on pearson correlation
+clustRows <- hclust(as.dist(1-cor(t(diffGenes), method="pearson")), method="complete") # cluster rows by pearson correlation
+clustColumns <- hclust(as.dist(1-cor(diffGenes, method="spearman")), method="complete") # cluster columns by pearson correlation
+module.assign <- cutree(clustRows, k=2) 
+
+modulePick <- 2 # pick the drought module
+myModule_dr <- diffGenes[names(module.assign[module.assign %in% modulePick]),]
+length(rownames(myModule_dr))
+
+gost.res.dr <- gost(rownames(myModule_dr), organism = "slycopersicum", correction_method = "fdr") # run GO enrichment analysis
+gostplot(gost.res.dr, interactive = T, capped = F) # interactive Manhattan plot of enriched GO terms
+
+# save gost plot and table
+publish_gostplot(
+  gostplot(gost.res.dr, interactive = F, capped = F), # static gostplot
+  highlight_terms = c("GO:0004866", "GO:0061135", "GO:0061134", "GO:0030414", "GO:0004867"), # highlight top 5
+  filename = "gostplot_drought.png",
+  width = NA,
+  height = NA)
+
+publish_gosttable(
+  gost.res.dr$result[order(gost.res.dr$result$p_value, decreasing = F),],
+  highlight_terms = NULL,
+  use_colors = TRUE,
+  show_columns = c("source", "term_name", "term_size", "intersection_size"),
+  filename = "gosttable_drought.pdf",
+  ggplot=TRUE)
+
+
+modulePick <- 1 # pick the control module
+myModule_healthy <- diffGenes[names(module.assign[module.assign %in% modulePick]),] 
+length(rownames(myModule_healthy))
+
+gost.res.healthy <- gost(rownames(myModule_healthy), organism = "slycopersicum", ordered_query = T, correction_method = "fdr") # run GO enrichment analysis
+gostplot(gost.res.healthy, interactive = T, capped = F) # interactive Manhattan plot of enriched GO terms
+
+# save gost plot and table
+publish_gostplot(
+  gostplot(gost.res.healthy, interactive = F, capped = F), # static gostplot
+  highlight_terms = c("GO:0009611", "GO:0034214", "GO:0004177", "GO:0034214", "GO:0070006"), # highlight top 5
+  filename = "gostplot_healthy.png",
+  width = NA,
+  height = NA)
+
+publish_gosttable(
+  gost.res.stem$result[order(gost.res.stem$result$p_value, decreasing = F),],
+  highlight_terms = NULL,
+  use_colors = TRUE,
+  show_columns = c("source", "term_name", "term_size", "intersection_size"),
+  filename = "gosttable_stem.pdf",
+  ggplot= T)
+
+# ----------- Heatmaps -----------------------------------------------------------------------------------------------
+myheatcolors <- rev(brewer.pal(name="Spectral", n=11)) # define a color palette
+module.color <- rainbow(length(unique(module.assign)), start=0.3, end=0.2) 
+module.color <- module.color[as.vector(module.assign)] # assign module colors
+
+# generate a heatmap for all DEGs
+heatmap.2(diffGenes, 
+          Rowv=as.dendrogram(clustRows), 
+          Colv=as.dendrogram(clustColumns),
+          RowSideColors=module.color,
+          col=myheatcolors, scale='row', labRow=NA,
+          density.info="none", trace="none",  
+          cexRow=1, cexCol=1, margins=c(8,20))
+
+# generate a heatmap for the drought species
+modulePick <- 2 
+hrsub_dr <- hclust(as.dist(1-cor(t(myModule_dr), method="pearson")), method="complete") 
+RowSideColors = module.color[module.assign %in% modulePick]
+
+heatmap.2(myModule_dr, 
+          Rowv = as.dendrogram(hrsub_dr), 
+          Colv = FALSE,  # Set Colv explicitly to FALSE
+          labRow = NA,
+          col = myheatcolors, scale = "row", 
+          density.info = "none", trace = "none", 
+          RowSideColors = module.color[module.assign %in% modulePick], 
+          margins = c(8, 20))
+
+
+# generate a heatmap for the healthy species
+modulePick <- 1
+hrsub_healthy <- hclust(as.dist(1-cor(t(myModule_healthy), method="pearson")), method="complete") 
+heatmap.2(myModule_healthy, 
+          Rowv=as.dendrogram(hrsub_healthy), 
+          Colv=NA, 
+          labRow = NA,
+          col=myheatcolors, scale="row", 
+          density.info="none", trace="none", 
+          RowSideColors=module.color[module.assign%in%modulePick], margins=c(8,20))
