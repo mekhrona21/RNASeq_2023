@@ -1,0 +1,80 @@
+# downloading paired data files for fastqc analysis from SRA
+wget -nc ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR765/005/SRR7652565/SRR7652565_1.fastq.gz
+....and further on for each sample in the pair
+
+# performing FASTQC analysis
+# first using fastqc to check the quality of our fastq files:
+fastqc *.gz -t 4
+
+# # next, we want to build an index from our reference fasta file 
+# I get my reference S.lycopersicum transcriptome files from here: https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-57/fasta/solanum_lycopersicum/cdna/
+
+kallisto index -i Solanum_lycopersicum.SL3.0.cdna.all.index Solanum_lycopersicum.SL3.0.cdna.all.fa.gz
+
+[build] loading fasta file Solanum_lycopersicum.SL3.0.cdna.all.fa.gz
+[build] k-mer length: 31
+[build] warning: clipped off poly-A tail (longer than 10)
+        from 16 target sequences
+[build] warning: replaced 1732 non-ACGUT characters in the input sequence
+        with pseudorandom nucleotides
+[build] counting k-mers ... done.
+[build] building target de Bruijn graph ...  done 
+[build] creating equivalence classes ...  done
+[build] target de Bruijn graph has 198128 contigs and contains 49290711 k-mers 
+
+# map reads to the indexed reference host transcriptome
+
+# for healthy data for each sample in the pair 
+
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o HS01 -t 4 --single -l 250 -s 30 SRR7652567_1_.fastq.gz &> HS01.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o HS01 -t 4 --single -l 250 -s 30 SRR7652567_1.fastq.gz &> HS01.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o HS02 -t 4 --single -l 250 -s 30 SRR7652567_2.fastq.gz &> HS02.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o HS03 -t 4 --single -l 250 -s 30 SRR7652566_1.fastq.gz &> HS03.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o HS04 -t 4 --single -l 250 -s 30 SRR7652566_2.fastq.gz &> HS04.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o HS05 -t 4 --single -l 250 -s 30 SRR7652565_1.fastq.gz &> HS05.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o HS06 -t 4 --single -l 250 -s 30 SRR7652565_2.fastq.gz &> HS06.log
+
+# for drought samples for each sample in the pair
+
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o DR01 -t 4 --single -l 250 -s 30 SRR7652569_1.fastq.gz &> DR01.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o DR02 -t 4 --single -l 250 -s 30 SRR7652569_2.fastq.gz &> DR02.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o DR03 -t 4 --single -l 250 -s 30 SRR7652568_1.fastq.gz &> DR03.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o DR04 -t 4 --single -l 250 -s 30 SRR7652568_2.fastq.gz &> DR04.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o DR05 -t 4 --single -l 250 -s 30 SRR7652563_1.fastq.gz &> DR05.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o DR06 -t 4 --single -l 250 -s 30 SRR7652563_2.fastq.gz &> DR06.log
+
+# summarizing fastqc and kallisto mapping for untrimmed data results in a single summary html using MultiQC
+
+multiqc -d .
+
+
+# Trimming data
+
+java -jar ~/course/Assign/Trimmomatic-0.39/trimmomatic-0.39.jar PE -threads 4 SRR7652565_1.fastq.gz SRR7652565_2.fastq.gz SRR7652565_1_trimmed_paired.fastq.gz SRR7652565_1_trimmed_unpaired.fastq.gz SRR7652565_2_trimmed_paired.fastq.gz SRR7652565_2_trimmed_unpaired.fastq.gz ILLUMINACLIP:TrueSeq3-PE-2.fa:2:30:10 HEADCROP:13 SLIDINGWINDOW:4:15 MINLEN:70
+java -jar ~/course/Assign/Trimmomatic-0.39/trimmomatic-0.39.jar PE -threads 4 SRR7652565_1.fastq.gz SRR7652565_2.fastq.gz SRR7652565_1_trimmed_paired.fastq.gz SRR7652565_1_trimmed_unpaired.fastq.gz SRR7652565_2_trimmed_paired.fastq.gz SRR7652565_2_trimmed_unpaired.fastq.gz ILLUMINACLIP:TrueSeq3-PE-2.fa:2:30:10 HEADCROP:13 SLIDINGWINDOW:4:15 MINLEN:70
+java -jar ~/course/Assign/Trimmomatic-0.39/trimmomatic-0.39.jar PE -threads 4 SRR7652566_1.fastq.gz SRR7652566_2.fastq.gz SRR7652566_1_trimmed_paired.fastq.gz SRR7652566_1_trimmed_unpaired.fastq.gz SRR7652566_2_trimmed_paired.fastq.gz SRR7652566_2_trimmed_unpaired.fastq.gz ILLUMINACLIP:TrueSeq3-PE-2.fa:2:30:10 HEADCROP:13 SLIDINGWINDOW:4:15 MINLEN:70
+java -jar ~/course/Assign/Trimmomatic-0.39/trimmomatic-0.39.jar PE -threads 4 SRR7652567_1.fastq.gz SRR7652567_2.fastq.gz SRR7652567_1_trimmed_paired.fastq.gz SRR7652567_1_trimmed_unpaired.fastq.gz SRR7652567_2_trimmed_paired.fastq.gz SRR7652567_2_trimmed_unpaired.fastq.gz ILLUMINACLIP:TrueSeq3-PE-2.fa:2:30:10 HEADCROP:13 SLIDINGWINDOW:4:15 MINLEN:70
+java -jar ~/course/Assign/Trimmomatic-0.39/trimmomatic-0.39.jar PE -threads 4 SRR7652568_1.fastq.gz SRR7652568_2.fastq.gz SRR7652568_1_trimmed_paired.fastq.gz SRR7652568_1_trimmed_unpaired.fastq.gz SRR7652568_2_trimmed_paired.fastq.gz SRR7652568_2_trimmed_unpaired.fastq.gz ILLUMINACLIP:TrueSeq3-PE-2.fa:2:30:10 HEADCROP:13 SLIDINGWINDOW:4:15 MINLEN:70
+java -jar ~/course/Assign/Trimmomatic-0.39/trimmomatic-0.39.jar PE -threads 4 SRR7652569_1.fastq.gz SRR7652569_2.fastq.gz SRR7652569_1_trimmed_paired.fastq.gz SRR7652569_1_trimmed_unpaired.fastq.gz SRR7652569_2_trimmed_paired.fastq.gz SRR7652569_2_trimmed_unpaired.fastq.gz ILLUMINACLIP:TrueSeq3-PE-2.fa:2:30:10 HEADCROP:13 SLIDINGWINDOW:4:15 MINLEN:70
+
+# Once again fastqc to check the quality of our trimmed fastq files:
+
+fastqc *_trimmed_paired.fastq.gz -t 4
+
+# mapping reads of the trimmed data to the indexed reference host transcriptome
+
+# for healthy samples
+
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o SRR7652567 SRR7652567_1_trimmed_paired.fastq.gz SRR7652567_2_trimmed_paired.fastq.gz &> kallisto_Lyco_C1_567.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o SRR7652566 SRR7652566_1_trimmed_paired.fastq.gz SRR7652566_2_trimmed_paired.fastq.gz &> kallisto_Lyco_C2_566.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o SRR7652565 SRR7652565_1_trimmed_paired.fastq.gz SRR7652565_2_trimmed_paired.fastq.gz &> kallisto_Lyco_C2_565.log
+
+# for drought samples
+
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o SRR7652569 SRR7652569_1_trimmed_paired.fastq.gz SRR7652569_2_trimmed_paired.fastq.gz &> kallisto_Lyco_D1_569.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o SRR7652568 SRR7652568_1_trimmed_paired.fastq.gz SRR7652568_2_trimmed_paired.fastq.gz &> kallisto_Lyco_D2_568.log
+kallisto quant -i Solanum_lycopersicum.SL3.0.cdna.all.index -o SRR7652563 SRR7652563_1_trimmed_paired.fastq.gz SRR7652563_2_trimmed_paired.fastq.gz &> kallisto_Lyco_D3_563.log
+
+# summarizing fastqc and kallisto mapping for trimmed data results in a single summary html using MultiQC
+
+multiqc -d .
